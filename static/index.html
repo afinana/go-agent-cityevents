@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CityEvents Copilot</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-layer-group logo-icon"></i>
+                <h2>CityEvents Copilot</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active"><i class="fa-solid fa-magnifying-glass"></i> New Search</a>
+                <a href="#" class="nav-item"><i class="fa-solid fa-clock-rotate-left"></i> History</a>
+                <a href="#" class="nav-item"><i class="fa-regular fa-bookmark"></i> Saved Events</a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="#" class="nav-item"><i class="fa-solid fa-gear"></i> Settings</a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="top-nav">
+                <div class="breadcrumb">Copilot > Madrid Events Search</div>
+                <div class="user-profile"><i class="fa-solid fa-circle-user"></i></div>
+            </div>
+
+            <!-- Chat/Results Area -->
+            <div class="content-area" id="content-area">
+                <div class="welcome-screen" id="welcome-screen">
+                    <div class="welcome-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                    <h1>What kind of events are you looking for?</h1>
+                    <p>Search using natural language. For example: "Music festivals this weekend" or "Art exhibitions in the center".</p>
+                </div>
+                
+                <div class="results-container" id="results-container" style="display: none;">
+                    <!-- Results will be injected here -->
+                </div>
+                
+                <!-- Loading Indicator -->
+                <div class="loading-container" id="loading-container" style="display: none;">
+                    <div class="spinner"></div>
+                    <span>Generating embeddings and searching...</span>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="input-area">
+                <form id="search-form" class="search-box">
+                    <input type="text" id="search-input" placeholder="Ask Copilot about Madrid events..." autocomplete="off" required>
+                    <button type="submit" class="submit-btn"><i class="fa-solid fa-paper-plane"></i></button>
+                </form>
+                <div class="disclaimer">CityEvents Copilot uses AI to match your query with the Madrid Open Data cultural events.</div>
+            </div>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
