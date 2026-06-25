@@ -221,8 +221,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             <span><i class="fa-solid fa-location-dot"></i> Madrid</span>
                             <span><i class="fa-solid fa-calendar-day"></i> Upcoming</span>
                         </div>
-                        <a href="${event.sourceId}" target="_blank" rel="noopener noreferrer" class="text-accent hover:underline flex items-center gap-1.5 font-medium select-none">
-                            <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> View Source
+                        <a href="${event.link}" target="_blank" rel="noopener noreferrer" class="text-accent hover:underline flex items-center gap-1.5 font-medium select-none">
+                            <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> View Details
                         </a>
                     </div>
                 </div>

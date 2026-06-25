@@ -8,6 +8,7 @@ type Event struct {
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
 	Embedding   []float32 `json:"embedding,omitempty"`
+	Link        string    `json:"link"`
 }
 
 type QueryHistoryItem struct {

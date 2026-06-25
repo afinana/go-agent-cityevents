@@ -19,6 +19,7 @@ type EventRaw struct {
 	ID          string `json:"@id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
+	Link        string `json:"link"`
 }
 
 // MadridFetcher implements ports.EventFetcher for fetching events from Madrid's open data platform.
@@ -57,6 +58,7 @@ func (f *MadridFetcher) FetchEvents(ctx context.Context, url string) ([]domain.E
 			SourceID:    raw.ID,
 			Title:       raw.Title,
 			Description: raw.Description,
+			Link:        raw.Link,
 		})
 	}
 

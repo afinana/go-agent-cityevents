@@ -19,6 +19,7 @@ type mongoEvent struct {
 	Title       string    `bson:"title"`
 	Description string    `bson:"description"`
 	Embedding   []float32 `bson:"embedding,omitempty"`
+	Link        string    `bson:"link"`
 }
 
 // MongoClient implements ports.EventRepository using MongoDB.
@@ -114,6 +115,7 @@ func (m *MongoClient) SearchEvents(ctx context.Context, queryEmbedding []float32
 			SourceID:    r.SourceID,
 			Title:       r.Title,
 			Description: r.Description,
+			Link:        r.Link,
 		})
 	}
 
@@ -132,6 +134,7 @@ func (m *MongoClient) InsertEvent(ctx context.Context, event *domain.Event) erro
 		Title:       event.Title,
 		Description: event.Description,
 		Embedding:   event.Embedding,
+		Link:        event.Link,
 	}
 	if event.ID != "" {
 		dbEvent.ID = event.ID
