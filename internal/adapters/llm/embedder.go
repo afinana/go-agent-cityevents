@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"go-agent-cityevents/internal/core/ports"
+
 	"google.golang.org/genai"
 )
 
@@ -22,7 +24,8 @@ const (
 
 // NewEmbedder returns an implementation of ports.Embedder based on the provider config.
 func NewEmbedder(ctx context.Context, provider string) (ports.Embedder, error) {
-	if Provider(provider) == ProviderVertex {
+	switch Provider(provider) {
+	case ProviderVertex:
 		location := getEnv("GCP_LOCATION", "us-central1")
 		projectID := getEnv("GCP_PROJECT_ID", "")
 		model := getEnv("EMBEDDING_MODEL", "text-embedding-004")
@@ -40,13 +43,61 @@ func NewEmbedder(ctx context.Context, provider string) (ports.Embedder, error) {
 			client: client,
 			model:  model,
 		}, nil
+	case ProviderOllama:
+		model := strings.TrimSpace(getEnv("EMBEDDING_MODEL", "nomic-embed-text"))
+		if model == "" {
+			return nil, fmt.Errorf("ollama embedding model cannot be empty")
+		}
+		if strings.Contains(model, ",") {
+			return nil, fmt.Errorf("ollama embedding model must be a single model name, got %q", model)
+		}
+
+		url := strings.TrimRight(getEnv("OLLAMA_URL", "http://localhost:11434"), "/")
+		if err := validateOllamaModel(ctx, url, model); err != nil {
+			return nil, err
+		}
+
+		return &OllamaEmbedder{
+			url:   url,
+			model: model,
+		}, nil
+	default:
+		return nil, fmt.Errorf("unsupported LLM provider %q", provider)
+	}
+}
+
+func validateOllamaModel(ctx context.Context, baseURL, model string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/api/tags", baseURL), nil)
+	if err != nil {
+		return fmt.Errorf("ollama initialization failed: %w", err)
 	}
 
-	// Default to Ollama
-	return &OllamaEmbedder{
-		url:   getEnv("OLLAMA_URL", "http://localhost:11434"),
-		model: getEnv("EMBEDDING_MODEL", "nomic-embed-text"),
-	}, nil
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("ollama initialization failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("ollama initialization failed: unexpected status %d from %s/api/tags", resp.StatusCode, baseURL)
+	}
+
+	var payload struct {
+		Models []struct {
+			Name string `json:"name"`
+		} `json:"models"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return fmt.Errorf("ollama initialization failed: could not decode tags response: %w", err)
+	}
+
+	for _, availableModel := range payload.Models {
+		if availableModel.Name == model || strings.HasPrefix(availableModel.Name, model+":") {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("ollama initialization failed: model %q not found at %s/api/tags", model, baseURL)
 }
 
 // -- Vertex Embedder --

@@ -1,9 +1,16 @@
 package domain
 
+import "time"
+
 type Event struct {
-	ID          string
-	SourceID    string
-	Title       string
-	Description string
-	Embedding   []float32
+	ID          string    `json:"id"`
+	SourceID    string    `json:"sourceId"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	Embedding   []float32 `json:"embedding,omitempty"`
+}
+
+type QueryHistoryItem struct {
+	Query     string    `json:"query"`
+	Timestamp time.Time `json:"timestamp"`
 }

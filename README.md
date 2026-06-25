@@ -63,3 +63,17 @@ To switch the underlying LLM provider from Ollama to Google Vertex AI:
    # OR run: gcloud auth application-default login
    ```
 4. Re-run `go run main.go`. The Google Gen AI SDK (`google.golang.org/genai`) will seamlessly route embedding requests to Vertex AI.
+
+## Agent-to-Agent (A2A) Discovery
+
+This agent supports the open **Google Agent-to-Agent (A2A)** protocol, enabling autonomous interaction and multi-agent coordination.
+
+### The Agent Card
+Other AI agents or orchestrators can dynamically discover this agent's capabilities by fetching its metadata "Agent Card". 
+
+Once the server is running, the Agent Card is exposed at:
+```
+GET http://localhost:8080/.well-known/agent-card.json
+```
+
+The returned metadata explicitly declares the `semantic_search` capabilities and details the JSON schema required to interact with the `/api/search` endpoint.

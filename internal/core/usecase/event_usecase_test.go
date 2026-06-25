@@ -21,6 +21,37 @@ func (m *mockRepository) InsertEvent(ctx context.Context, event *domain.Event) e
 	return nil
 }
 
+func (m *mockRepository) SearchEvents(ctx context.Context, queryEmbedding []float32, limit int) ([]*domain.Event, error) {
+	return nil, nil
+}
+
+func (m *mockRepository) EnsureVectorIndex(ctx context.Context) error {
+	return nil
+}
+
+func (m *mockRepository) Ping(ctx context.Context) error {
+	if m.fail {
+		return errors.New("db error")
+	}
+	return nil
+}
+
+func (m *mockRepository) SaveQuery(ctx context.Context, query string) error {
+	return nil
+}
+
+func (m *mockRepository) GetQueryHistory(ctx context.Context, limit int) ([]domain.QueryHistoryItem, error) {
+	return nil, nil
+}
+
+func (m *mockRepository) DeleteQuery(ctx context.Context, query string) error {
+	return nil
+}
+
+func (m *mockRepository) ClearQueryHistory(ctx context.Context) error {
+	return nil
+}
+
 type mockEmbedder struct {
 	embedMap map[string][]float32
 	failText string

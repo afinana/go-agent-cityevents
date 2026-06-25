@@ -63,12 +63,36 @@ func (u *eventUseCase) IngestEvents(ctx context.Context, url string) error {
 
 // SearchEvents embeds the query and searches the repository.
 func (u *eventUseCase) SearchEvents(ctx context.Context, query string, limit int) ([]*domain.Event, error) {
+	fmt.Printf("[INFO] Generating embedding for query: '%s'\n", query)
 	// Embed the query
 	embedding, err := u.embedder.EmbedText(ctx, query)
 	if err != nil {
+		fmt.Printf("[ERROR] EmbedText failed: %v\n", err)
 		return nil, fmt.Errorf("failed to embed query: %w", err)
 	}
 
+	fmt.Printf("[INFO] Executing MongoDB vector search with limit: %d\n", limit)
 	// Search in repo
 	return u.repo.SearchEvents(ctx, embedding, limit)
+}
+
+// Ping pings the repository connection.
+func (u *eventUseCase) Ping(ctx context.Context) error {
+	return u.repo.Ping(ctx)
+}
+
+func (u *eventUseCase) SaveQuery(ctx context.Context, query string) error {
+	return u.repo.SaveQuery(ctx, query)
+}
+
+func (u *eventUseCase) GetQueryHistory(ctx context.Context, limit int) ([]domain.QueryHistoryItem, error) {
+	return u.repo.GetQueryHistory(ctx, limit)
+}
+
+func (u *eventUseCase) DeleteQuery(ctx context.Context, query string) error {
+	return u.repo.DeleteQuery(ctx, query)
+}
+
+func (u *eventUseCase) ClearQueryHistory(ctx context.Context) error {
+	return u.repo.ClearQueryHistory(ctx)
 }

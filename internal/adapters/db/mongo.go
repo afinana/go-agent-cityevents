@@ -3,8 +3,10 @@ package db
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"go-agent-cityevents/internal/core/domain"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -48,18 +50,18 @@ func NewMongoClient(ctx context.Context, uri, dbName, colName string) (*MongoCli
 // EnsureVectorIndex creates the vector search index on the 'embedding' field.
 func (m *MongoClient) EnsureVectorIndex(ctx context.Context) error {
 	cmd := bson.D{
-		{"createSearchIndexes", m.collection.Name()},
-		{"indexes", []bson.D{
-			{
-				{"name", "vector_index"},
-				{"definition", bson.D{
-					{"mappings", bson.D{
-						{"dynamic", true},
-						{"fields", bson.D{
-							{"embedding", bson.D{
-								{"dimensions", 768}, // For nomic-embed-text
-								{"similarity", "cosine"},
-								{"type", "knnVector"},
+		{Key: "createSearchIndexes", Value: m.collection.Name()},
+		{Key: "indexes", Value: []any{
+			bson.D{
+				{Key: "name", Value: "vector_index"},
+				{Key: "definition", Value: bson.D{
+					{Key: "mappings", Value: bson.D{
+						{Key: "dynamic", Value: true},
+						{Key: "fields", Value: bson.D{
+							{Key: "embedding", Value: bson.D{
+								{Key: "dimensions", Value: 768}, // For nomic-embed-text
+								{Key: "similarity", Value: "cosine"},
+								{Key: "type", Value: "knnVector"},
 							}},
 						}},
 					}},
@@ -77,21 +79,21 @@ func (m *MongoClient) EnsureVectorIndex(ctx context.Context) error {
 // SearchEvents uses $vectorSearch to find the most semantically similar events.
 func (m *MongoClient) SearchEvents(ctx context.Context, queryEmbedding []float32, limit int) ([]*domain.Event, error) {
 	pipeline := mongo.Pipeline{
-		{{
-			"$vectorSearch", bson.D{
-				{"index", "vector_index"},
-				{"path", "embedding"},
-				{"queryVector", queryEmbedding},
-				{"numCandidates", limit * 10},
-				{"limit", limit},
-			},
-		}},
-		{{
-			"$project", bson.D{
-				{"embedding", 0},
-				{"score", bson.D{{"$meta", "vectorSearchScore"}}},
-			},
-		}},
+		{
+			{Key: "$vectorSearch", Value: bson.D{
+				{Key: "index", Value: "vector_index"},
+				{Key: "path", Value: "embedding"},
+				{Key: "queryVector", Value: queryEmbedding},
+				{Key: "numCandidates", Value: limit * 10},
+				{Key: "limit", Value: limit},
+			}},
+		},
+		{
+			{Key: "$project", Value: bson.D{
+				{Key: "embedding", Value: 0},
+				{Key: "score", Value: bson.D{{Key: "$meta", Value: "vectorSearchScore"}}},
+			}},
+		},
 	}
 
 	cursor, err := m.collection.Aggregate(ctx, pipeline)
@@ -118,6 +120,11 @@ func (m *MongoClient) SearchEvents(ctx context.Context, queryEmbedding []float32
 	return domainEvents, nil
 }
 
+// CountDocuments returns the number of stored events in the collection.
+func (m *MongoClient) CountDocuments(ctx context.Context, filter interface{}, opts ...*options.CountOptions) (int64, error) {
+	return m.collection.CountDocuments(ctx, filter, opts...)
+}
+
 // InsertEvent persists the domain Event into MongoDB.
 func (m *MongoClient) InsertEvent(ctx context.Context, event *domain.Event) error {
 	dbEvent := mongoEvent{
@@ -140,4 +147,66 @@ func (m *MongoClient) InsertEvent(ctx context.Context, event *domain.Event) erro
 // Close closes the MongoDB client connection.
 func (m *MongoClient) Close(ctx context.Context) error {
 	return m.client.Disconnect(ctx)
+}
+
+// Ping pings the MongoDB client connection.
+func (m *MongoClient) Ping(ctx context.Context) error {
+	return m.client.Ping(ctx, nil)
+}
+
+// SaveQuery saves a search query to the database, updating the timestamp if it already exists.
+func (m *MongoClient) SaveQuery(ctx context.Context, queryText string) error {
+	col := m.collection.Database().Collection("queries")
+	filter := bson.D{{Key: "query", Value: queryText}}
+	update := bson.D{
+		{Key: "$set", Value: bson.D{
+			{Key: "query", Value: queryText},
+			{Key: "timestamp", Value: time.Now()},
+		}},
+	}
+	opts := options.Update().SetUpsert(true)
+	_, err := col.UpdateOne(ctx, filter, update, opts)
+	return err
+}
+
+// GetQueryHistory returns recent queries sorted by newest first.
+func (m *MongoClient) GetQueryHistory(ctx context.Context, limit int) ([]domain.QueryHistoryItem, error) {
+	col := m.collection.Database().Collection("queries")
+	opts := options.Find().SetSort(bson.D{{Key: "timestamp", Value: -1}}).SetLimit(int64(limit))
+	cursor, err := col.Find(ctx, bson.D{}, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var dbQueries []struct {
+		Query     string    `bson:"query"`
+		Timestamp time.Time `bson:"timestamp"`
+	}
+	if err := cursor.All(ctx, &dbQueries); err != nil {
+		return nil, err
+	}
+
+	var history []domain.QueryHistoryItem
+	for _, q := range dbQueries {
+		history = append(history, domain.QueryHistoryItem{
+			Query:     q.Query,
+			Timestamp: q.Timestamp,
+		})
+	}
+	return history, nil
+}
+
+// DeleteQuery removes a specific query from the history.
+func (m *MongoClient) DeleteQuery(ctx context.Context, queryText string) error {
+	col := m.collection.Database().Collection("queries")
+	_, err := col.DeleteOne(ctx, bson.D{{Key: "query", Value: queryText}})
+	return err
+}
+
+// ClearQueryHistory clears all stored queries.
+func (m *MongoClient) ClearQueryHistory(ctx context.Context) error {
+	col := m.collection.Database().Collection("queries")
+	_, err := col.DeleteMany(ctx, bson.D{})
+	return err
 }
